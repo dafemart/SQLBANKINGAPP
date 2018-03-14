@@ -39,15 +39,15 @@ public class RequestDaoImpl implements RequestDao {
 	
 	public Request.RequestType unboxRequestType(String type){
 		Request.RequestType EnumType = null;
-		if(type == OPENNORMALACCOUNT)
+		if(type.compareTo(OPENNORMALACCOUNT) == 0)
 			EnumType = Request.RequestType.OPENNORMALACCOUNT;
-		else if(type == OPENJOINTACCOUNT)
+		else if(type.compareTo(OPENJOINTACCOUNT) == 0)
 			EnumType = Request.RequestType.OPENJOINTACCOUNT;
-		else if(type == CLOSEJOINTACCOUNT)
+		else if(type.compareTo(CLOSEJOINTACCOUNT) == 0)
 			EnumType = Request.RequestType.CLOSEJOINTACCOUNT;
-		else if(type == CLOSENORMALACCOUNT)
+		else if(type.compareTo(CLOSENORMALACCOUNT) == 0)
 			EnumType = Request.RequestType.CLOSENORMALACCOUNT;
-		else if(type == LINKTOACCOUNT)
+		else if(type.compareTo(LINKTOACCOUNT) == 0)
 			EnumType = Request.RequestType.LINKTOACCOUNT;
 		return EnumType;
 	}
@@ -65,11 +65,11 @@ public class RequestDaoImpl implements RequestDao {
 	
 	public Request.RequestStatus unboxRequestStatus(String status){
 		Request.RequestStatus EnumStatus = null;
-		if(status == ONHOLD)
+		if(status.compareTo(ONHOLD) == 0)
 			EnumStatus = Request.RequestStatus.ONHOLD;
-		else if(status == APPROVED)
+		else if(status.compareTo(APPROVED) == 0)
 			EnumStatus = Request.RequestStatus.APPROVED;
-		else if(status == DENIED)
+		else if(status.compareTo(DENIED) == 0)
 			EnumStatus = Request.RequestStatus.DENIED;
 		return EnumStatus;
 	}
@@ -85,6 +85,7 @@ public class RequestDaoImpl implements RequestDao {
 			cStmt.setInt(4,request.getAccountNumber());
 			cStmt.setInt(5, request.getLinkToBankID());
 			cStmt.execute();
+			conn.close();
 		}
 		catch(SQLException e){
 			e.printStackTrace();
@@ -94,34 +95,50 @@ public class RequestDaoImpl implements RequestDao {
 	@Override
 	public Request getNextRequest() {
 		// TODO Auto-generated method stub
+		Connection conn = ConnectionFactory.getInstance().getConnection();
 		Request NextRequest = null;
-		
 		String sql = "SELECT * FROM REQUESTS";
 		
 		try{
-			PreparedStatement ps = 
-					ConnectionFactory.getInstance().getConnection().prepareStatement(sql);
+			PreparedStatement ps = conn.prepareStatement(sql);
 			ResultSet rs = ps.executeQuery();
 			
 			while(rs.next()){
-				if(rs.getString(3) == ONHOLD){
+				if(rs.getString(3).compareTo(ONHOLD) == 0){
 					NextRequest = new Request();
-					
+					NextRequest.setRequestID(rs.getInt(1));
+					NextRequest.setRequestType(unboxRequestType(rs.getString(2)));
+					NextRequest.setRequestStatus(unboxRequestStatus(rs.getString(3)));
+					NextRequest.setAssociatedBankID(rs.getInt(4));
+					NextRequest.setAccountNumer(rs.getInt(5));
+					NextRequest.setLinkToBankID(rs.getInt(6));
+					break;
 				}
 			}
-			ps.close();
+			conn.close();
 		}catch(SQLException e){
 			e.printStackTrace();
 		}
 		
 		
-		return null;
+		return NextRequest;
 	}
 
 	@Override
 	public void updateRequest(Request request) {
-		// TODO Auto-generated method stub
-		
+		Connection conn = ConnectionFactory.getInstance().getConnection();
+		String sql = "UPDATE REQUESTS "
+				     + "SET REQUESTSTATUS = ? "
+				     + "WHERE REQUESTID = ?";
+		try{
+			PreparedStatement ps = conn.prepareStatement(sql);
+			ps.setString(1, this.boxRequestStatus(request.getRequestStatus()));
+			ps.setInt(2, request.getRequestID());
+			ps.executeUpdate();
+			conn.close();
+		}
+		catch(SQLException e){
+			e.printStackTrace();
+		}				
 	}
-
 }

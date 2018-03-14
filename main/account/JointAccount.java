@@ -69,4 +69,8 @@ public class JointAccount implements Account {
 	public void addBankID(int BankID){
 		this.OwnersBankIDs.add(BankID);
 	}
+	
+	public ArrayList<Integer> getOwners(){
+		return this.OwnersBankIDs;
+	}
 }

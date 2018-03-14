@@ -8,6 +8,9 @@ import account.JointAccount;
 import account.NormalAccount;
 import accountHandler.AccountHandler;
 import request.Request;
+import daos.AccountDaoImpl;
+import daos.RequestDao;
+import daos.RequestDaoImpl;
 import dataHandler.AccountsDatabase;
 import dataHandler.DataHandler;
 import dataHandler.IdentificationDatabase;
@@ -18,9 +21,10 @@ public class EmployeeDuties {
 	
     public void handleCustomerRequests() throws ClassNotFoundException, IOException{
     	Scanner sc = new Scanner(System.in);
-    	RequestsDatabase database = DataHandler.readRequest();
+    	RequestDaoImpl reqdao = new RequestDaoImpl();
+    	AccountDaoImpl accdao = new AccountDaoImpl();
     	Request request = null;
-    	while((request = database.getNextRequest()) != null){
+    	while((request = reqdao.getNextRequest()) != null){
     	   	System.out.println("Displaying request from BankID" + request.getAssociatedBankID());
     	   	
     	   	if(request.getRequestType() == Request.RequestType.OPENJOINTACCOUNT){
@@ -38,15 +42,13 @@ public class EmployeeDuties {
     	    	  ArrayList<Integer> BankIDs = new ArrayList<Integer>();
     	    	  BankIDs.add(request.getAssociatedBankID());
     	    	  JointAccount newJointAccount = new JointAccount(newAccountNumber, newBalance, BankIDs);
-    	    	  AccountsDatabase<JointAccount> AccountBase  = DataHandler.readJointAccount();
-    	    	  AccountBase.addAccount(newJointAccount);
-    	    	  DataHandler.storeJointAccount(AccountBase);
+    	    	  accdao.createJointAccount(newJointAccount);
     	    	  request.setRequestStatus(Request.RequestStatus.APPROVED);
-    	    	  DataHandler.storeRequest(database);
-    	    	  DataHandler.storeIdentificationBase(IDbase);
+    	    	  reqdao.updateRequest(request);
     	    	  break;
     	       case 1:
     	    	  request.setRequestStatus(Request.RequestStatus.DENIED);
+    	    	  reqdao.updateRequest(request);
     	    	  break;
     	       case 2:
     	    	   return;
@@ -69,15 +71,13 @@ public class EmployeeDuties {
    	    	       int newBalance = 0;
    	    	       int AssociatedBankID = request.getAssociatedBankID();
    	    	       NormalAccount newNormalAccount = new NormalAccount(newAccountNumber, newBalance, AssociatedBankID);
-   	    	       AccountsDatabase<NormalAccount> AccountBase  = DataHandler.readNormalAccount();
-  	    	       AccountBase.addAccount(newNormalAccount);
-  	    	       DataHandler.storeNormalAccount(AccountBase);
+   	    	       accdao.createNormalAccount(newNormalAccount);
   	    	       request.setRequestStatus(Request.RequestStatus.APPROVED);
-  	    	       DataHandler.storeRequest(database);    
-  	    	       DataHandler.storeIdentificationBase(IDbase);
+  	    	       reqdao.updateRequest(request);
    	               break;
    	            case 0:
    	    	       request.setRequestStatus(Request.RequestStatus.DENIED);
+   	    	       reqdao.updateRequest(request);
    	    	       break;
    	            default:
    	            break;
@@ -87,25 +87,17 @@ public class EmployeeDuties {
     	   	else if(request.getRequestType() == Request.RequestType.CLOSEJOINTACCOUNT){
     	   		System.out.println("issuing CLOSEJOINTACCOUNT request received from" + 
     	   	                      request.getAssociatedBankID());
-    	   	    AccountsDatabase<JointAccount> AccountBase  = DataHandler.readJointAccount();
-   	            if(AccountBase.LeaveAccount(request.getAccountNumber(), request.getAssociatedBankID())){
-   	            	request.setRequestStatus(Request.RequestStatus.APPROVED);
-   	            }
-   	            else request.setRequestStatus(Request.RequestStatus.DENIED);
-   	         DataHandler.storeRequest(database);  
-   	         DataHandler.storeJointAccount(AccountBase);
+   	            accdao.deleteJointAccount(request.getAccountNumber(), request.getAssociatedBankID());
+   	            request.setRequestStatus(Request.RequestStatus.APPROVED); 
+   	            reqdao.updateRequest(request);
     	   	}
     	   	
     	   	else if(request.getRequestType() == Request.RequestType.CLOSENORMALACCOUNT){
-    	   		System.out.println("issuing CLOSENORMALACCOUNT request received from" + 
+    	   		System.out.println("issuing CLOSEJOINTACCOUNT request received from" + 
  	                      request.getAssociatedBankID());
-    	   		AccountsDatabase<NormalAccount> AccountBase = DataHandler.readNormalAccount();
-    	   	    if(AccountBase.LeaveAccount(request.getAccountNumber(), request.getAssociatedBankID())){
-	            	request.setRequestStatus(Request.RequestStatus.APPROVED);
-	            }
-	            else request.setRequestStatus(Request.RequestStatus.DENIED);
-    	   	 DataHandler.storeRequest(database);  
-   	         DataHandler.storeNormalAccount(AccountBase);
+                accdao.deleteNormalAccount(request.getAccountNumber(), request.getAssociatedBankID());
+                request.setRequestStatus(Request.RequestStatus.APPROVED); 
+                reqdao.updateRequest(request);
     	   	}
     	}
     	System.out.println("No more requests to handle for this BankID");

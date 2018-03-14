@@ -8,6 +8,7 @@ import request.Request;
 import account.JointAccount;
 import account.NormalAccount;
 import accountHandler.AccountHandler;
+import daos.AccountDaoImpl;
 import daos.EntityDaoImpl;
 import daos.RequestDaoImpl;
 import dataHandler.AccountsDatabase;
@@ -22,6 +23,7 @@ public class login {
 	
 	public static boolean displayAccountOptions(ArrayList<Integer> CustNormalAccNumbers,
 			ArrayList<Integer>CustJointAccNumbers, CustomerInfo info) throws ClassNotFoundException, IOException{
+		RequestDaoImpl reqdao = new RequestDaoImpl();
 		boolean BreakLoop = false;
 		Scanner rc = new Scanner(System.in);
 		System.out.println("0---withdraw");
@@ -71,9 +73,7 @@ public class login {
 				Request request = new Request(Request.RequestType.CLOSEJOINTACCOUNT,
 						    Request.RequestStatus.ONHOLD,info.getEntityBankID());
 				request.setAccountNumer(AccNum);
-				RequestsDatabase ReqBase = DataHandler.readRequest();
-				ReqBase.addRequest(request);
-				DataHandler.storeRequest(ReqBase);
+				reqdao.createRequest(request);
 			}
 			else System.out.println("You don't own this account");
 			break;
@@ -84,9 +84,7 @@ public class login {
 				Request request = new Request(Request.RequestType.CLOSENORMALACCOUNT,
 						    Request.RequestStatus.ONHOLD,info.getEntityBankID());
 				request.setAccountNumer(AccNum);
-				RequestsDatabase ReqBase = DataHandler.readRequest();
-				ReqBase.addRequest(request);
-				DataHandler.storeRequest(ReqBase);
+				reqdao.createRequest(request);
 			}
 			else System.out.println("You don't own this account");
 			break;
@@ -100,9 +98,7 @@ public class login {
 				System.out.println("Enter the target BankID ");
 				int targetBankID = rc.nextInt();
 				 request.setLinkToBankID(targetBankID);
-				 RequestsDatabase reqBase = DataHandler.readRequest();
-				 reqBase.addRequest(request);
-				 DataHandler.storeRequest(reqBase);
+				 reqdao.createRequest(request);
 			 }
 			 else System.out.println("you don't own this account");
 			break;
@@ -130,13 +126,14 @@ public class login {
 	}
 	
 	 public static void displayAssociatedAccounts(CustomerInfo info) throws ClassNotFoundException, IOException{
-	     boolean BreakLoop = false;
+		 boolean BreakLoop = false;
+		 AccountDaoImpl accdao = new AccountDaoImpl();
 		 while(true){
 		 System.out.println("Normal Accounts: ");
 		 ArrayList<Integer> NormalAccountNumbers = new ArrayList<Integer>();
-		 AccountsDatabase<NormalAccount> base = DataHandler.readNormalAccount();
+		 ArrayList<NormalAccount> normalaccounts =  accdao.retrieveNormalAccountsByID(info.getEntityBankID());
 		 System.out.println("AccountNumber---Balance");
-		 for(NormalAccount acc : base.getAccounts()){
+		 for(NormalAccount acc : normalaccounts){
 			 if(acc.getOwnerBankID() == info.getEntityBankID()){
 				 System.out.println(acc.getAccountNumber()+"---"+acc.getBalance());
 				 NormalAccountNumbers.add(acc.getAccountNumber());
@@ -145,9 +142,9 @@ public class login {
 		 System.out.println("");
 		 System.out.println("Joint Accounts");
 		 ArrayList<Integer> JointAccountNumbers = new ArrayList<Integer>();
-		 AccountsDatabase<JointAccount> JointAccBase = DataHandler.readJointAccount();
+		 ArrayList<JointAccount> jointaccounts = accdao.retrieveJointAccountsByID(info.getEntityBankID());
 		 System.out.println("AccountNumber---Balance");
-		 for(JointAccount acc : JointAccBase.getAccounts()){
+		 for(JointAccount acc : jointaccounts){
 			 if(acc.containsBankID(info.getEntityBankID())){
 				 System.out.println(acc.getAccountNumber()+"---"+acc.getBalance());
 				 JointAccountNumbers.add(acc.getAccountNumber());
@@ -161,9 +158,11 @@ public class login {
 	 }
 	 
 	 public static void displayIssueRequestOption(CustomerInfo info) throws ClassNotFoundException, IOException{
+		 RequestDaoImpl reqdao = new RequestDaoImpl();
+		 AccountDaoImpl accdao = new AccountDaoImpl();
 		 Scanner rc = new Scanner(System.in);
-		 RequestsDatabase base = DataHandler.readRequest();
-		 for(Request req : base.getRequests()){
+		 Request req = null;
+		 while((req = reqdao.getNextRequest()) != null){
 			 if(req.getRequestType() == Request.RequestType.LINKTOACCOUNT &&
 				 req.getLinkToBankID() == info.getEntityBankID()){
 				 System.out.println("LinkAccount request received from the BankID" + 
@@ -174,18 +173,16 @@ public class login {
 				 switch(input){
 				 case 0:
 					 req.setRequestStatus(Request.RequestStatus.APPROVED);
-					 AccountsDatabase<JointAccount> accBase = DataHandler.readJointAccount();
-					 JointAccount acc = accBase.getAccountInfo(req.getAccountNumber());
-					 acc.addBankID(info.getEntityBankID());
-					 DataHandler.storeJointAccount(accBase);
+					 reqdao.updateRequest(req);
+					 accdao.linkToJointAccount(req.getLinkToBankID(), req.getAccountNumber());
 					 break;
 				 case 1:
 					 req.setRequestStatus(Request.RequestStatus.DENIED);
+					 reqdao.updateRequest(req);
 					 break;
 				 default:
 					 break;
 				 }
-				 DataHandler.storeRequest(base);
 			 }
 		 }
 	 }

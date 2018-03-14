@@ -57,6 +57,10 @@ public class Request implements Serializable {
 	    return this.CurrentStatus;
 	}
 	
+	public void setAssociatedBankID( int BankID){
+		this.AssociatedBankID = BankID;
+	}
+	
 	public int getAssociatedBankID(){
 		return this.AssociatedBankID;
 	}

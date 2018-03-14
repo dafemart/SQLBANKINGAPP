@@ -32,6 +32,7 @@ public class EntityDaoImpl<T> implements EntityDao<T> {
 			cStmt.setString(2, ((EntityInfo) info).getUsername());
 			cStmt.setString(3, ((EntityInfo) info).getPassword());
 			cStmt.execute();
+			conn.close();
 		}
 		catch(SQLException e){
 			e.printStackTrace();
@@ -66,8 +67,8 @@ public class EntityDaoImpl<T> implements EntityDao<T> {
 		
 		String sql = "SELECT * FROM " + table + " WHERE USERNAME = ?";
 		try{
-			PreparedStatement ps = 
-					ConnectionFactory.getInstance().getConnection().prepareStatement(sql);
+			Connection conn = ConnectionFactory.getInstance().getConnection();
+			PreparedStatement ps = conn.prepareStatement(sql);
 			ps.setString(1, username);
 			ResultSet rs = ps.executeQuery();
 			while(rs.next()){
@@ -76,6 +77,7 @@ public class EntityDaoImpl<T> implements EntityDao<T> {
 				Entity.setPassword(rs.getString(3));
 				Entity.setBankID(rs.getInt(4));
 			}
+			conn.close();
 		}
 		catch(SQLException e){
 			e.printStackTrace();
@@ -86,6 +88,7 @@ public class EntityDaoImpl<T> implements EntityDao<T> {
 
 	@Override
 	public ArrayList<T> retrieveAllEntities(String EntityType) {
+		Connection conn = ConnectionFactory.getInstance().getConnection();
 		ArrayList<T> Entities = new ArrayList<T>();
 		String table = null;
 		switch(EntityType){
@@ -111,8 +114,7 @@ public class EntityDaoImpl<T> implements EntityDao<T> {
 		String sql = "SELECT * FROM " + table + ";";
 		
 		try{
-			PreparedStatement ps = 
-					ConnectionFactory.getInstance().getConnection().prepareStatement(sql);
+			PreparedStatement ps = conn.prepareStatement(sql);
 			ResultSet rs = ps.executeQuery();
 			
 			while(rs.next()){
